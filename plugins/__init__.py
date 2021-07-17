@@ -32,11 +32,7 @@ from .webif import WebInterface
 import sys
 
 from _operator import or_
-sys.path.append('/devtools/eclipse/plugins/org.python.pydev.core_8.1.0.202012051215/pysrc')
-#sys.path.append('/home/smarthome/.p2/pool/plugins/org.python.pydev.core_6.5.0.201809011628/pysrc')
-import pydevd
 
-#pydevd.settrace("192.168.178.37", port=5678)
 import asyncio
 import pyworxcloud
 
@@ -73,7 +69,6 @@ class landroid(SmartPlugin):
         self.items = Items.get_instance()
         self.auth = False
         super().__init__()
-        pydevd.settrace("192.168.178.37", port=5678)
         self.parent_item = self.get_parameter_value('parent_item')
         
         self.user = self.get_parameter_value('landroid_user')
@@ -111,7 +106,6 @@ class landroid(SmartPlugin):
         """
         self.logger.debug("Run method called")
         # setup scheduler for device poll loop   (disable the following line, if you don't need to poll the device. Rember to comment the self_cycle statement in __init__ as well)
-        pydevd.settrace("192.168.178.37", port=5678)
         self.scheduler_add('poll_device', self.poll_device, cycle=self.cycle)
 
         self.alive = True
@@ -147,7 +141,6 @@ class landroid(SmartPlugin):
         self.alive = False
     
     def worx_init(self):
-        #pydevd.settrace("192.168.178.37", port=5678)
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         asyncio.get_event_loop().run_until_complete(self.logon())
@@ -255,7 +248,6 @@ class landroid(SmartPlugin):
             self.worx.getStatus()
         
             #Store all attributes received from the device to items
-            #pydevd.settrace("192.168.178.37", port=5678)
             attrs = vars(self.worx)
             for item in attrs:
                 self.logger.warning("Got item {} with value {}".format(item,attrs[item]))
