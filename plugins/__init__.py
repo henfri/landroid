@@ -153,7 +153,7 @@ class landroid(SmartPlugin):
     
     async def logon(self):
         # Initialize connection, using your worx email and password
-        #auth = await worx.initialize("hendrik@friedels.name","MeinWorx321!") #worx.initialize("hendrik@friedels.name","MeinWorx321!")
+        #auth = await worx.initialize(self.user,self.pwd,)
         self.auth = await self.worx.initialize(self.user,self.pwd)
 
         if not self.auth:
