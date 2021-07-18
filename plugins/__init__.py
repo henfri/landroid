@@ -78,7 +78,7 @@ class landroid(SmartPlugin):
         
         
         # Variante ohne asyncio - self.auth wird aber nicht richtig gesetzt
-        #self.auth = self.worx._authenticate("hendrik@friedels.name","MeinWorx321!",'worx') 
+        #self.auth = self.worx._authenticate(self.user,self.pwd,'worx') 
 
         # get the parameters for the plugin (as defined in metadata plugin.yaml):
         # cycle time in seconds, only needed, if hardware/interface needs to be
