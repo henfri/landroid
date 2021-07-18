@@ -10,7 +10,7 @@ Landroid-Plugin (proof of concept)
 # Inbetriebnahme
 ## --------------------------------------
 - Im Order "/items" ist eine Beispiel-Item-Datei
-- im Ordner "/plugins" ist das komplette Plugin. Diesen in /smarthome/plugins kopieren
+- im Ordner "/plugins" ist das komplette Plugin. Diesen in /smarthome/plugins/landroid kopieren
 - Die Rechte auf den  Plugin + Item Order prüfen und eventuell korrigieren
 - Die Einträge in der /etc/plugin.yaml ergänzen
 - shNG neu starten
