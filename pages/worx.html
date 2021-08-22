@@ -1,0 +1,406 @@
+/**
+* -----------------------------------------------------------------------------
+* @package     smartVISU
+* @author      André Kohler
+* @copyright   2015
+* @license     GPL [http://www.gnu.de]
+* -----------------------------------------------------------------------------
+*/
+
+
+{% extends "rooms.html" %}
+
+{% block content %}
+<style type="text/css">
+	<!--
+	* {
+		margin: 0;
+		padding: 0;
+	}
+	-->
+	.wrap {
+		width: 100%;
+		height: 70px;
+		position: relative;
+	}
+	img {
+		
+	}
+	.img-a {
+		bottom:5%;
+		left: 0;
+		z-index: 1;
+		width:70%;
+		position: absolute;
+	}
+	.img-b {
+		bottom: 15%;
+		left: 45%;
+		width:64px;
+		position: absolute;
+	}
+	.img-c {
+		bottom: 5%;
+		right: 0;
+		z-index: 1;
+		width:30%;
+		height:0.7em;
+		position: absolute;
+	}
+	.img-d {
+		bottom: 5%;
+		left: 70%;
+		z-index: 1;
+		width:70%;
+		position: absolute;
+	}	
+	.img-animated {
+		-webkit-animation: mowing linear infinite;
+		animation: mowing linear infinite;	
+		-webkit-animation-duration: 6s;
+		-webkit-animation-delay: -2s;
+		animation-duration: 6s;
+		left: -66px;
+	}
+.box-caption {
+  
+  max-width: 200px;
+  margin-left: 10px;
+  padding-left: .5rem;
+  padding-top: .1rem;
+  word-break: break-word;
+  font-size: 1.5rem;
+	}
+
+div.left
+{
+	width: 50%;
+	float: left;
+	height: 50px;
+	
+}
+
+div.right
+{
+	float: right;
+	width: 50%;
+	height: 50px;	
+	
+}	
+@keyframes mowing {
+	0% {
+		transform: translate(0);
+	}
+	100% {
+		transform: translate(800px);
+	}	
+	</style>
+  <!--
+  position: absolute;
+  background-color: rgba(0,0,0,.3);
+  color: #f2f2f2;
+  -->
+	<h1><img class="icon" src='{{ icon0 }}scene_robo_lawnmower_moving.svg' />Worx-Mower</h1>
+
+<div class="preblock">
+</div>
+
+<div class="block">
+	<div class="set-2" data-role="collapsible-set" data-theme="c" data-content-theme="a" data-mini="true">
+
+		<div data-role="collapsible" data-collapsed="false">
+			<h3>Status</h3>
+			
+			<table style="width:100%">
+				<tr>
+				<td style="background:#f47920; height:150px; border-radius:10px; overflow: hidden;">
+				<div class="box-caption"> 
+					{{ basic.print('','worx.visu.status_text','text','','','','','') }}
+				</div>
+				<!-- pictures for charging -->
+        {{ status.collapse('charging', 'worx.visu.charging') }}
+        <div class="hide" data-bind="charging">
+				  <div class="wrap">
+					  <img class="img-a" src=dropins/icons/worx/short_grass.webp>
+					  <img id="Mower" class="img-b"src=dropins/icons/worx/status_mower_charging.png>
+					  <img class="img-c" src=dropins/icons/worx/tall_grass.webp>
+				  </div>
+				</div>
+				<!-- pictures for moving -->
+        {{ status.collapse('moving', 'worx.visu.moving') }}
+        <div class="hide" data-bind="moving">
+				  <div class="wrap">
+					  <img class="img-a" src=dropins/icons/worx/short_grass.webp>
+					  <img id="Mower" class="img-b img-animated"src=dropins/icons/worx/status_mower.webp>
+					  <img class="img-d" src=dropins/icons/worx/short_grass.webp>
+				  </div>
+				</div>
+				<!-- pictures for docked -->
+        {{ status.collapse('docked', 'worx.visu.docked') }}
+        <div class="hide" data-bind="docked">
+				  <div class="wrap">
+					  <img class="img-a" src=dropins/icons/worx/short_grass.webp>
+					  <img id="Mower" class="img-b"src=dropins/icons/worx/status_mower_home.webp>
+					  <img class="img-c" src=dropins/icons/worx/tall_grass.webp>
+				  </div>
+				</div>								
+				<span>
+				<div class="left">
+				{{icon.volume('','','worx.rssi',0,-100,'')}}
+				{{basic.print('', ['worx.rssi'], 'db', 'VAR1 * 1')}}
+				</div> 
+				<div class="right">
+				{{ icon.battery('batteryiconstatus', '', 'worx.battery_percent',0,100,'') }}
+				{{ basic.print('', 'worx.battery_percent', '%') }}
+				</div>
+				</span>	
+				</td>
+				</tr>
+				<tr>
+				  <td>
+          {{ status.collapse('error', 'worx.error') }}
+          <div class="hide" data-bind="error">
+              {{ basic.symbol('','','','info_warning','','','red','','','') }}
+  				    {{ basic.print('','worx.error_description','text','','','red','','') }}
+  				</div>
+				  </td>
+				</tr>				
+				<tr>
+					<td width="100%">
+						<div data-role="controlgroup" data-type="horizontal">
+							Kommando:<br>
+							{{ basic.stateswitch('Indego_start', 'worx.commands.MOW', 'midi', '', 'scene_robo_lawnmower_start.svg') }}
+							{{ basic.stateswitch('Indego_pause', 'worx.commands.PAUSE', 'midi', '', 'scene_robo_lawnmower_stop.svg') }}
+							{{ basic.stateswitch('Indego_return', 'worx.commands.RETURN', 'midi', '', 'scene_robo_lawnmower_dock.svg') }}
+						</div>
+					</td>
+				</tr>
+			</table>
+
+			<table width="100%" id="worx-inside-1" style="font-size=100%">
+			<tr>
+				<td align="left" width=80%>Batterie:</td>
+				<td align="right" width=10%>{{ basic.print('', 'worx.battery_percent', '%') }}</td>
+				<td align="center" width=10%>{{ icon.battery('batteryiconstatus', '', 'worx.battery_percent',0,100,'') }}</td>					
+		
+			</tr>
+			</table>
+		</div>
+	</div>
+</div>
+
+
+<div class="block">
+	<div class="set-2" data-role="collapsible-set" data-theme="c" data-content-theme="a" data-mini="true">
+
+		<div data-role="collapsible" data-collapsed="false">
+			<h3>Mein Rasen</h3>
+			
+			<table style="width:100%;">
+				<tr>
+
+					<td style="width:50%; height:150px; border-style:solid; border-radius:10px">
+					<a href="#popup1" data-rel="popup">
+						<h2>Rasenfläche</h2>
+						<br>
+						<span>
+						<div class="left">
+						{{basic.print('', ['worx.lawn_size'], 'm²', '')}}
+						</div> 
+						<div class="right">
+						<img style="width:40px" src=dropins/icons/worx/ic_menu_my_lawn.webp> 
+						
+						</div>
+						</span>
+						</a>
+					</td>
+
+<div id="popup1" data-role="popup">
+<div>
+{{ basic.stateswitch('', 'bath.light.switch', 'icon') }}
+{{ basic.stateswitch('', 'bath.light.switch', 'icon') }}
+{{ basic.stateswitch('', 'bath.light.switch', 'icon') }}
+</div>
+<a href="#" data-rel="back" data-role="button" data-icon="delete" data-iconpos="notext" class="ui-btn-right">Close</a>
+</div>
+					<td style="width:50%; height:150px; border-style:solid; border-radius:10px">
+						<h2>Grasarten</h2>
+						<br>
+						<span>
+						<div class="left">
+						{{basic.print('', 'worx.auto_schedule_settings', '%', 'VAR1.grass_type')}}
+						</div> 
+						<div class="right">
+						{{ basic.symbol('','Garage.unten.Rasensprenger','','dropins/icons/worx/1276359753.svg',[0,1],'',['antiquewhite','green'],'','') }}	
+						</div>
+						</span>
+					</td>
+				</tr>
+				<tr>
+					<td style="width:50%; height:150px; border-style:solid; border-radius:10px">
+					<a href="#popup2" data-rel="popup">					
+						<h2>Bodenart</h2>
+						<br>
+						<span>
+						<div class="left">
+						{{basic.print('', 'worx.auto_schedule_settings', '%', 'VAR1.soil_type')}}
+						</div> 
+						<div class="right">
+<!--						<img style="width:40px" src=dropins/icons/worx/soil-svgrepo-com.svg> -->
+						{{ basic.symbol('','Garage.unten.Rasensprenger','','dropins/icons/worx/soil-svgrepo-com.svg',[0,1],'',['icon0','darkgoldenrod'],'','') }}						
+
+						
+						</div>
+						</span>
+						</a>
+					</td>
+<div id="popup2" data-role="popup" style="width:280px; height:200px;">
+  <a href="#" data-rel="back" data-role="button" data-icon="delete" data-iconpos="notext" class="ui-btn-right">Close</a>
+    <div style="padding-left:30%">
+    <h2>Bodenart auswählen</h2>
+
+    {{ basic.select('', 'Alexas.EchoDotKueche.playerInfo.hint', 'icon', ['sand','silt','kies'], ['dropins/icons/worx/soil-svgrepo-com.svg','dropins/icons/worx/soil-svgrepo-com.svg','dropins/icons/worx/soil-svgrepo-com.svg'], ['Sand', 'Ton', 'Kies'],'','vertical') }}
+    </div>
+</div>					
+					<td style="width:50%; height:150px; border-style:solid; border-radius:10px" href>
+            <a href="#popup3" data-rel="popup">					
+ 					  <h2>Beregnung</h2>
+						<br>
+						<span>
+						<div class="left">
+						{{basic.print('', 'Garage.unten.Rasensprenger.Schaltuhr', 'text', 'VAR1.active == true ? "EIN" : "AUS"')}}
+						</div> 
+						<div class="right">
+						{{ basic.symbol('','Garage.unten.Rasensprenger','','sani_sprinkling',[0,1],'',['icon0','blue'],'','') }}						
+<!--						<img style="width:40px" src='sani_sprinkling.svg'> -->
+						</div>
+						</span>
+<div id="popup3" data-role="popup" style="width:560px; height:320px;">
+  <a href="#" data-rel="back" data-role="button" data-icon="delete" data-iconpos="notext" class="ui-btn-right">Close</a>
+    <div>
+         	 {{ device.uzsutable('','Garage.unten.Rasensprenger.Schaltuhr','Schaltuhr Rasensprenger','1','0','limegreen','red','','',true,'10m','solid',true,true,true,true,3,'','','') }}
+
+    </div>
+</div>											
+					</td>
+				</tr>
+			</table>
+
+	
+			
+			
+			
+	
+
+
+		</div>
+
+
+
+	</div>
+</div>
+
+
+
+/** # Worx Weather----------------------------------------------------- */
+    <div id="wintermode_3" style="display: block;">
+		<div class="block" style="min-height:20px">
+			<div id="jumpakku" class="set-2" data-role="collapsible-set" data-theme="c" data-content-theme="a" data-mini="true">
+				<div data-role="collapsible" data-collapsed="false">
+					<h3>Mäher Wetterdaten (stündlich von OWM)</h3>					
+					<div id="Advanced_Info1_3_1000_1" style="display:block">
+						<table width="100%" id="worx-inside-1" style="font-size=50%"> 
+							<tr><tr>
+							  <td align="center" colspan=2>
+							    {{multimedia.image('','worx.weather.icon','','','')}}
+							  </td>
+
+  						</tr><tr>
+								<td align="left">Temperatur:</td>
+								<td align="right">{{ basic.print('', 'worx.weather.temp', '%01,2f°') }}</td>
+							</tr><tr>
+								<td align="left">gefühlt wie:</td>
+								<td align="right">{{ basic.print('', 'worx.weather.feels_like', '%01,2f°') }}</td>
+							</tr><tr>
+								<td align="left">Niederschlag:</td>
+								<td align="right">{{ basic.print('', 'worx.weather.rain', '%01,2fl/m²') }}</td>
+							</tr><tr>
+							<td align="left">Max-Temparatur:</td>
+							<td align="right">{{ basic.print('', 'worx.weather.temp_max', '%01,1f°') }}</td>
+						</tr><tr>
+							<td align="left">Min-Temparatur:</td>
+							<td align="right">{{ basic.print('', 'worx.weather.temp_min', '%01,1f°') }}</td>
+						</tr><tr>
+							<td align="left">Windgeschwindigkeit:</td>
+							<td align="right">{{ basic.print('', 'worx.weather.wind.speed', '%01,0fkm/h') }}</td>
+						</tr><tr>
+							<td align="left">Windrichtung:</td>
+							<td align="right">{{ basic.print('', 'worx.weather.wind.deg', '%01,0f°') }}</td>
+						</tr><tr>
+							<td align="left">Böen:</td>
+							<td align="right">{{ basic.print('', 'worx.weather.wind.gust', '%01,0fkm/h') }}</td>
+						</tr><tr>
+							<td align="left">Luftdruck:</td>
+							<td align="right">{{ basic.print('', 'worx.weather.pressure', '%01,0fhPa') }}</td>
+						</tr><tr>
+							<td align="left">Luftfeuchtigkeit:</td>
+							<td align="right">{{ basic.print('', 'worx.weather.humidity', '%1,0f%') }}</td>
+						</tr><tr>
+							<td align="left">Wolkendecke:</td>
+							<td align="right">{{ basic.print('', 'worx.weather.clouds', '%1,0f%') }}</td>
+						</tr><tr>
+              <td align="left">letzte Aktualisierung:</td>
+							<td align="right">{{ basic.print('', 'worx.weather.timestamp', 'hPa') }}</td>						
+						</tr>
+						
+					</table>
+				</div>
+				</div>
+				
+
+
+			</div>
+		</div>
+	</div>
+
+/** # Worx Inside----------------------------------------------------- */
+    <div id="wintermode_4" style="display: block;">
+		<div class="block" style="width:100%;  min-height:20px">
+			<div id="jumpakku" class="set-3" data-role="collapsible-set" data-theme="c" data-content-theme="a" data-mini="true">
+				<div data-role="collapsible" data-collapsed="false">
+					<h3>Batterie-Daten</h3>					
+					<div id="Advanced_Info1_4_1000_1" style="display:block">
+						<table width="100%" id="worx-inside-1" style="font-size=50%"> 
+							<tr>
+								<td align="left">Spannung:</td>
+								<td align="right">{{ basic.print('txt_voltage', 'worx.battery_voltage', '%01,2fV') }}</td>
+							</tr><tr>
+								<td align="left">Batterie in Prozent:</td>
+							  <td align="right">{{ icon.battery('batteryicon', '', 'worx.battery_percent',0,100) }} {{ basic.print('', 'worx.battery_percent', '%') }} </td>
+							</tr><tr>
+							<td align="left">Batterie Temparatur:</td>
+							<td align="right">{{ basic.print('txt_battery_temp', 'worx.battery_temperature', '%01,1f°') }}</td>
+						</tr><tr>
+							<td align="left">Ladezyklen:</td>
+							<td align="right">{{ basic.print('txt_battery_temp', 'worx.battery_charge_cycle', '%01,0f') }}</td>
+						</tr>
+					</table>
+				</div>
+					<hr>
+					{{ plot.period('', ['worx.battery_temperature', 'worx.battery_voltage'], 'raw', '7d', 'now', '0', '', '200', ['Akku Temp. (°C)','Akku (V)'], ['#4176a9','#fa3'], ['line', 'line'], '', 'advanced', '', '', '', '', '', { yAxis: [ { tickInterval: 3 } ] , legend: { verticalAlign: 'top', y: 0 } } ) }}
+					<div class="ui-li-aside" align="right">{{ basic.symbol('', '', '', 'jquery_carat-u.svg', '', '', '', '#jumptop', '') }}</div>
+				</div>
+				
+				<div  data-role="collapsible" data-collapsed="true">
+					<h3>Mäh/Ladezeiten</h3>
+					<table width="100%" id="indego-inside-3" style="font-size=50%"></table>
+					{{ plot.period('', ['worx.visu.moving_time','worx.visu.charging_time'], 'raw', '7d', 'now', '0', '', '150', ['Fahrzeit (Min)','Ladezeit (Min)'], ['#0b0','#fa3'], ['areastair', 'stair'], '', 'advanced', '', '', '', '', '', { yAxis: [ { tickInterval: 5 } ] , legend: { verticalAlign: 'top', y: 0 } } ) }}
+					<div class="ui-li-aside" align="right">{{ basic.symbol('', '', '', 'jquery_carat-u.svg', '', '', '', '#jumptop', '') }}</div>
+				</div>
+
+			</div>
+		</div>
+	</div>
+
+{% endblock %}
+

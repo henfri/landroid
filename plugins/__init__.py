@@ -32,9 +32,11 @@ from .webif import WebInterface
 import sys
 
 from _operator import or_
+from builtins import True
 
 import asyncio
 import pyworxcloud
+import time
 
 
 # If a needed package is imported, which might be not installed in the Python environment,
@@ -48,7 +50,7 @@ class landroid(SmartPlugin):
     the update functions for the items
     """
 
-    PLUGIN_VERSION = '1.7.1'    # (must match the version specified in plugin.yaml), use '1.0.0' for your initial plugin Release
+    PLUGIN_VERSION = '1.0.0'    # (must match the version specified in plugin.yaml), use '1.0.0' for your initial plugin Release
 
     def __init__(self, sh):
         """
@@ -68,11 +70,13 @@ class landroid(SmartPlugin):
         self.sh = self.get_sh()
         self.items = Items.get_instance()
         self.auth = False
+        self._connected = False
         super().__init__()
         self.parent_item = self.get_parameter_value('parent_item')
         
         self.user = self.get_parameter_value('landroid_user')
         self.pwd = self.get_parameter_value('landroid_pwd')
+        self.workload_cycle = self.get_parameter_value('workload_cycle')
         
         self.worx = pyworxcloud.WorxCloud()
         
@@ -107,14 +111,22 @@ class landroid(SmartPlugin):
         self.logger.debug("Run method called")
         # setup scheduler for device poll loop   (disable the following line, if you don't need to poll the device. Rember to comment the self_cycle statement in __init__ as well)
         self.scheduler_add('poll_device', self.poll_device, cycle=self.cycle)
+        self.scheduler_add('workload', self._workload, cycle=self.workload_cycle)
+        self.scheduler_add('weather', self._get_weather, cycle=60*60)
 
-        self.alive = True
-        self.worx_init()
-        if self.auth == False:
-            self.logger.warning("Cound not login to IOT @ Amazon - plugin is not working")
-        # get the Values from Worx first Time
-        self.poll_device()
         
+        self.worx_init()
+        if self.auth != True:
+            self.logger.warning("Cound not login to IOT @ Amazon - plugin is not working")
+            return
+        # get the Values from Worx first Time
+        self.alive = True
+        if self._connected == True:
+            self.poll_device()
+            self._get_weather()
+            self._handle_state()
+        else:
+            self.logger.warning("Connection to Broker failed")
         
         # New scheduler for next login - experitation = 31536000 Seconds = 365 Tage
         # Muss man wahrscheinlich bei 365 Tagen nicht haben
@@ -140,6 +152,59 @@ class landroid(SmartPlugin):
         #self.scheduler_remove('worx_login')
         self.alive = False
     
+    
+    
+    def _ots(self):
+        """
+        Command to send one Time schedule with or withour edgecut
+        bc  = edgecut 
+        wtm = worktime
+        """
+        myPayload={'ots':{'bc:' : True,'wtm': 300 }}
+        self.worx._mqtt.publish(self.worx.mqtt_in, myPayload, qos=0, retain=False)
+        
+    def _workload(self):
+        charging_time = self._get_childitem('visu.charging_time')
+        moving_time   = self._get_childitem('visu.moving_time')
+        
+        if (self._get_childitem('battery_charging') != 0):
+            charging_time += self.workload_cycle / 60.0
+            self._set_childitem('visu.charging_time', charging_time)
+        else:
+            self._set_childitem('visu.charging_time', 0.0)
+        
+        actState = self._get_childitem('status')
+        if (actState == 3 or actState == 4 or actState == 5 or actState == 6 or actState == 7 or actState ==30 or actState == 31 or actState == 32 or actState == 33):
+            moving_time += self.workload_cycle  / 60.0
+            self._set_childitem('visu.moving_time', moving_time)
+        else:
+            self._set_childitem('visu.moving_time', 0.0)
+
+
+    def _handle_state(self, item=None):
+        charging_text = ''
+        actState = self._get_childitem('status')
+        if (actState == 3 or actState == 4 or actState == 5 or actState == 6 or actState == 7 or actState ==30 or actState == 31 or actState == 32 or actState == 33):
+            self._set_childitem('visu.docked', False)
+            self._set_childitem('visu.moving', True)
+            self._set_childitem('visu.charging', False)
+            
+        elif (self._get_childitem('battery_charging') != 0):
+            self._set_childitem('visu.docked', False)
+            self._set_childitem('visu.moving', False)
+            self._set_childitem('visu.charging', True)
+            charging_text = ' - charging'
+            
+        else:
+            self._set_childitem('visu.docked', True)
+            self._set_childitem('visu.moving', False)
+            self._set_childitem('visu.charging', False)
+        
+        
+        myText = self._get_childitem('status_description')+charging_text
+        self._set_childitem('visu.status_text', myText)
+        self.logger.debug("actState is :'{}' Status-Description :  '{}' Visu-Description {}".format( actState, self._get_childitem('status_description'),myText ))
+            
     def worx_init(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
@@ -148,19 +213,24 @@ class landroid(SmartPlugin):
             self.loop.close()
         except:
             pass
-        self.worx.connect(0, False)
+        self._connected = self.worx.connect(0, False)
+        if self._connected != True:
+            self.logger.warning("Connection to Broker failed")
+
         
-    
+
     async def logon(self):
         # Initialize connection, using your worx email and password
-        #auth = await worx.initialize(self.user,self.pwd,)
+        #auth = await worx.initialize(self.user,self.pwd)
         self.auth = await self.worx.initialize(self.user,self.pwd)
 
         if not self.auth:
             #If invalid credentials are used, or something happend during
             #authorize, then exit
+            self.logger.warning("authentication was not succesfull")
             return False
         else:
+            self.logger.warning("authentication was succesfull logged in ")
             return True
 
         #asyncio.get_event_loop().run_until_complete(self.logon())
@@ -178,6 +248,15 @@ class landroid(SmartPlugin):
                         with the item, caller, source and dest as arguments and in case of the knx plugin the value
                         can be sent to the knx with a knx write function within the knx plugin.
         """
+        
+        if self.has_iattr(item.conf, 'landroid_command'):
+            self.logger.debug("Item '{}' has attribute '{}' found with {}".format( item, 'landroid_command', self.get_iattr_value(item.conf, 'indego_command')))
+            return self.update_item
+        
+        if self.has_iattr(item.conf, 'landroid_visu_function'):
+            self.logger.debug("Item '{}' has attribute '{}' found with {}".format( item, 'landroid_visu_function', self.get_iattr_value(item.conf, 'indego_command')))
+            return self.update_item
+        
         if self.has_iattr(item.conf, 'foo_itemtag'):
             self.logger.debug("parse item: {}".format(item))
 
@@ -210,11 +289,28 @@ class landroid(SmartPlugin):
             # code to execute if the plugin is not stopped
             # and only, if the item has not been changed by this this plugin:
             self.logger.info("Update item: {}, item has been changed outside this plugin".format(item.id()))
+            
+            if self.has_iattr(item.conf, 'landroid_command'):
+                self.logger.debug("Item '{}' has attribute '{}' found with {}".format( item, 'landroid_command', self.get_iattr_value(item.conf, 'landroid_visu_function')))
+                if (item() == True):
+                    myFunction_Name = self.get_iattr_value(item.conf, 'landroid_command')
+                    myFunction = eval(myFunction_Name)
 
             if self.has_iattr(item.conf, 'foo_itemtag'):
                 self.logger.debug("update_item was called with item '{}' from caller '{}', source '{}' and dest '{}'".format(item,
-                                                                                                               caller, source, dest))
+                                                                                                           caller, source, dest))
+            
             pass
+        
+        # Function for Items modified by the plugin himself
+        if self.alive and caller == self.get_shortname():
+            if self.has_iattr(item.conf, 'landroid_visu_function'):
+                self.logger.debug("Item '{}' has attribute '{}' found with {}".format( item, 'landroid_visu_function', self.get_iattr_value(item.conf, 'landroid_visu_function')))
+                myFunction_Name = self.get_iattr_value(item.conf, 'landroid_visu_function')
+                myFunction = getattr(self,myFunction_Name)
+                myFunction(item)    
+            
+                
 
     def poll_device(self):
         """
@@ -242,20 +338,62 @@ class landroid(SmartPlugin):
         
         if self.auth:
             #Force and update request to get latest state from the device
+            self.logger.warning("Starting to get Update from worx-Cloud")
             self.worx.update()
-            
+            self.logger.warning("ended to get Update from worx-Cloud")
             #Read latest states received from the device
+            self.logger.warning("Starting to get Status from worx-Cloud")
             self.worx.getStatus()
-        
+            self.logger.warning("ended to get Status from worx-Cloud")
+            self.parse_worx_attr()
+            
+            
+    def parse_worx_attr(self):
+        if self.auth:
             #Store all attributes received from the device to items
+            self.logger.warning("Starting to parse worx-Attributes")
             attrs = vars(self.worx)
             for item in attrs:
                 self.logger.warning("Got item {} with value {}".format(item,attrs[item]))
                 try:
                     self._set_childitem(item, attrs[item])
                 except:
+                    self.logger.warning("Excpetion during parsing worx-Attributes")
                     pass
-
+            self.logger.warning("finished to parse worx-Attributes")
+    
+    
+    def _get_weather(self):
+        if not self.auth:
+            return
+        myUrl = "/product-items/{}/weather/current".format(self.worx.serial)
+        myWeather = self.worx._api._call(myUrl)
+        try:
+            # Parse to items
+            self._set_childitem('weather.main', myWeather['weather'][0]['main'])
+            self._set_childitem('weather.description',myWeather['weather'][0]['description'] )
+            self._set_childitem('weather.icon','http://openweathermap.org/img/wn/{}@2x.png'.format(myWeather['weather'][0]['icon']))
+            self._set_childitem('weather.temp',myWeather['main']['temp'] )
+            self._set_childitem('weather.feels_like',myWeather['main']['feels_like'] )
+            self._set_childitem('weather.temp_min',myWeather['main']['temp_min'] )
+            self._set_childitem('weather.temp_max',myWeather['main']['temp_max'] )
+            self._set_childitem('weather.pressure',myWeather['main']['pressure'] )
+            self._set_childitem('weather.humidity',myWeather['main']['humidity'] )
+            self._set_childitem('weather.wind.speed',myWeather['wind']['speed'] )
+            self._set_childitem('weather.wind.deg',myWeather['wind']['deg'] )
+            if "gust" in myWeather:
+                self._set_childitem('weather.wind.gust',myWeather['wind']['gust'] )
+            else:
+                self._set_childitem('weather.wind.gust',0.0 )
+            self._set_childitem('weather.clouds',myWeather['clouds']['all'] )
+            self._set_childitem('weather.timestamp',time.strftime("%d.%m.%Y %H:%M", time.localtime(int(myWeather['dt']))) )
+            if "rain" in myWeather:
+                self._set_childitem('weather.rain',myWeather['rain']['1h'] )
+            else:
+                self._set_childitem('weather.rain',0.0 )
+        except:
+            self.logger.warning("Problem while parsing weather")
+        
     ##############################################
     # Private functions
     ##############################################
