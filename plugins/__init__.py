@@ -32,9 +32,9 @@ from .webif import WebInterface
 import sys
 
 from _operator import or_
-from builtins import True
+#from builtins import True
 
-import asyncio
+#import asyncio
 import pyworxcloud
 import time
 
@@ -113,6 +113,7 @@ class landroid(SmartPlugin):
         self.scheduler_add('poll_device', self.poll_device, cycle=self.cycle)
         self.scheduler_add('workload', self._workload, cycle=self.workload_cycle)
         self.scheduler_add('weather', self._get_weather, cycle=60*60)
+        self.scheduler_add('parse', self.parse_worx_attr, cycle=10)
 
         
         self.worx_init()
@@ -206,23 +207,25 @@ class landroid(SmartPlugin):
         self.logger.debug("actState is :'{}' Status-Description :  '{}' Visu-Description {}".format( actState, self._get_childitem('status_description'),myText ))
             
     def worx_init(self):
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
-        asyncio.get_event_loop().run_until_complete(self.logon())
-        try:
-            self.loop.close()
-        except:
-            pass
+        #self.loop = asyncio.new_event_loop()
+        #asyncio.set_event_loop(self.loop)
+        #asyncio.get_event_loop().run_until_complete(self.logon())
+        self.logon()
+        #try:
+        #    self.loop.close()
+        #except:
+        #    pass
         self._connected = self.worx.connect(0, False)
         if self._connected != True:
             self.logger.warning("Connection to Broker failed")
 
         
 
-    async def logon(self):
+#    async def logon(self):
+    def logon(self):
         # Initialize connection, using your worx email and password
         #auth = await worx.initialize(self.user,self.pwd)
-        self.auth = await self.worx.initialize(self.user,self.pwd)
+        self.auth = self.worx.initialize(self.user,self.pwd)
 
         if not self.auth:
             #If invalid credentials are used, or something happend during
@@ -338,29 +341,29 @@ class landroid(SmartPlugin):
         
         if self.auth:
             #Force and update request to get latest state from the device
-            self.logger.warning("Starting to get Update from worx-Cloud")
+            self.logger.debug("Starting to get Update from worx-Cloud")
             self.worx.update()
-            self.logger.warning("ended to get Update from worx-Cloud")
+            self.logger.debug("ended to get Update from worx-Cloud")
             #Read latest states received from the device
-            self.logger.warning("Starting to get Status from worx-Cloud")
+            self.logger.debug("Starting to get Status from worx-Cloud")
             self.worx.getStatus()
-            self.logger.warning("ended to get Status from worx-Cloud")
+            self.logger.debug("ended to get Status from worx-Cloud")
             self.parse_worx_attr()
             
             
     def parse_worx_attr(self):
         if self.auth:
             #Store all attributes received from the device to items
-            self.logger.warning("Starting to parse worx-Attributes")
+            self.logger.debug("Starting to parse worx-Attributes")
             attrs = vars(self.worx)
             for item in attrs:
-                self.logger.warning("Got item {} with value {}".format(item,attrs[item]))
+                self.logger.debug("Got item {} with value {}".format(item,attrs[item]))
                 try:
                     self._set_childitem(item, attrs[item])
                 except:
-                    self.logger.warning("Excpetion during parsing worx-Attributes")
+                    self.logger.error("Excpetion during parsing worx-Attributes")
                     pass
-            self.logger.warning("finished to parse worx-Attributes")
+            self.logger.debug("finished to parse worx-Attributes")
     
     
     def _get_weather(self):
