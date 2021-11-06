@@ -1,2 +1,2 @@
-pyworxcloud >= 1.3.0
+pyworxcloud >= 1.4.1
 
